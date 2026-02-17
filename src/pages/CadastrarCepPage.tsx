@@ -1,9 +1,27 @@
-import { useState } from "react";
-import { MapPin, Plus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { MapPin, Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+interface Cep {
+  id: number;
+  cep: string;
+  status: "pendente" | "processando" | "concluido" | "erro";
+  erro_msg: string | null;
+  tentativas: number;
+  total_anuncios: number;
+  criado_em: string;
+  atualizado_em: string;
+}
 
 const formatarCep = (valor: string): string => {
   const digitos = valor.replace(/\D/g, "").slice(0, 8);
@@ -14,26 +32,105 @@ const formatarCep = (valor: string): string => {
 const cepCompleto = (cep: string): boolean =>
   cep.replace(/\D/g, "").length === 8;
 
+const formatarCepExibicao = (cepLimpo: string) =>
+  `${cepLimpo.slice(0, 5)}-${cepLimpo.slice(5)}`;
+
+function StatusBadge({ cep }: { cep: Cep }) {
+  switch (cep.status) {
+    case "pendente":
+      return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pendente</Badge>;
+    case "processando":
+      return (
+        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+          Processando
+        </Badge>
+      );
+    case "concluido":
+      return (
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          Concluido — {cep.total_anuncios} anuncio(s)
+        </Badge>
+      );
+    case "erro":
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                Erro — tentativa {cep.tentativas}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-sm">
+              <p className="text-xs font-mono whitespace-pre-wrap">{cep.erro_msg || "Sem detalhes"}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+  }
+}
+
 export function CadastrarCepPage() {
   const [cep, setCep] = useState("");
-  const [cepsCadastrados, setCepsCadastrados] = useState<string[]>([]);
+  const [cepsCadastrados, setCepsCadastrados] = useState<Cep[]>([]);
+  const [carregando, setCarregando] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const buscarCeps = useCallback(async () => {
+    try {
+      const res = await fetch("/api/v1/ceps");
+      if (res.ok) {
+        const data = await res.json();
+        setCepsCadastrados(data);
+      }
+    } catch {
+      // silencioso — polling vai tentar de novo
+    }
+  }, []);
+
+  useEffect(() => {
+    buscarCeps();
+    intervalRef.current = setInterval(buscarCeps, 5000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [buscarCeps]);
 
   const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCep(formatarCep(e.target.value));
   };
 
-  const handleCadastrar = () => {
+  const handleCadastrar = async () => {
     if (!cepCompleto(cep)) return;
 
-    const cepLimpo = cep.replace(/\D/g, "");
-    if (cepsCadastrados.includes(cepLimpo)) {
-      toast.error("CEP ja cadastrado");
-      return;
-    }
+    setCarregando(true);
+    try {
+      const res = await fetch("/api/v1/ceps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cep: cep.replace(/\D/g, "") }),
+      });
 
-    setCepsCadastrados((prev) => [cepLimpo, ...prev]);
-    setCep("");
-    toast.success(`CEP ${cep} cadastrado com sucesso`);
+      if (res.status === 409) {
+        toast.error("CEP ja cadastrado");
+        return;
+      }
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.detail || "Erro ao cadastrar CEP");
+        return;
+      }
+
+      const novo: Cep = await res.json();
+      setCepsCadastrados((prev) => [novo, ...prev]);
+      setCep("");
+      toast.success(`CEP ${cep} cadastrado e enfileirado`);
+    } catch {
+      toast.error("Erro de conexao com o servidor");
+    } finally {
+      setCarregando(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -42,14 +139,19 @@ export function CadastrarCepPage() {
     }
   };
 
-  const handleRemover = (cepRemover: string) => {
-    setCepsCadastrados((prev) => prev.filter((c) => c !== cepRemover));
-    const formatado = `${cepRemover.slice(0, 5)}-${cepRemover.slice(5)}`;
-    toast.info(`CEP ${formatado} removido`);
+  const handleRemover = async (cepRemover: Cep) => {
+    try {
+      const res = await fetch(`/api/v1/ceps/${cepRemover.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setCepsCadastrados((prev) => prev.filter((c) => c.id !== cepRemover.id));
+        toast.info(`CEP ${formatarCepExibicao(cepRemover.cep)} removido`);
+      }
+    } catch {
+      toast.error("Erro ao remover CEP");
+    }
   };
-
-  const formatarCepExibicao = (cepLimpo: string) =>
-    `${cepLimpo.slice(0, 5)}-${cepLimpo.slice(5)}`;
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
@@ -85,10 +187,14 @@ export function CadastrarCepPage() {
             </div>
             <Button
               onClick={handleCadastrar}
-              disabled={!cepCompleto(cep)}
+              disabled={!cepCompleto(cep) || carregando}
               className="bg-accent hover:bg-accent/90 text-accent-foreground font-medium h-12 px-6"
             >
-              <Plus className="w-4 h-4 mr-1" />
+              {carregando ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4 mr-1" />
+              )}
               Cadastrar
             </Button>
           </div>
@@ -106,14 +212,15 @@ export function CadastrarCepPage() {
             <div className="space-y-2">
               {cepsCadastrados.map((c) => (
                 <div
-                  key={c}
+                  key={c.id}
                   className="flex items-center justify-between px-4 py-3 rounded-lg bg-muted/50 border border-border/50"
                 >
                   <div className="flex items-center gap-3">
                     <MapPin className="w-4 h-4 text-accent" />
                     <span className="font-mono text-sm font-medium">
-                      {formatarCepExibicao(c)}
+                      {formatarCepExibicao(c.cep)}
                     </span>
+                    <StatusBadge cep={c} />
                   </div>
                   <Button
                     variant="ghost"
