@@ -23,14 +23,14 @@ interface Cep {
   atualizado_em: string;
 }
 
-const formatarCep = (valor: string): string => {
-  const digitos = valor.replace(/\D/g, "").slice(0, 8);
-  if (digitos.length <= 5) return digitos;
-  return `${digitos.slice(0, 5)}-${digitos.slice(5)}`;
-};
-
-const cepCompleto = (cep: string): boolean =>
-  cep.replace(/\D/g, "").length === 8;
+interface EnderecoSugestao {
+  label: string;
+  lat: number;
+  lon: number;
+  cidade?: string;
+  uf?: string;
+  cep?: string;
+}
 
 const formatarCepExibicao = (cepLimpo: string) =>
   `${cepLimpo.slice(0, 5)}-${cepLimpo.slice(5)}`;
@@ -71,10 +71,26 @@ function StatusBadge({ cep }: { cep: Cep }) {
 }
 
 export function CadastrarCepPage() {
-  const [cep, setCep] = useState("");
+  const [texto, setTexto] = useState("");
+  const [sugestoes, setSugestoes] = useState<EnderecoSugestao[]>([]);
+  const [dropdownAberto, setDropdownAberto] = useState(false);
+  const [buscando, setBuscando] = useState(false);
   const [cepsCadastrados, setCepsCadastrados] = useState<Cep[]>([]);
   const [carregando, setCarregando] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Fecha dropdown ao clicar fora
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setDropdownAberto(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const buscarCeps = useCallback(async () => {
     try {
@@ -96,19 +112,53 @@ export function CadastrarCepPage() {
     };
   }, [buscarCeps]);
 
-  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCep(formatarCep(e.target.value));
+  const handleTextoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value;
+    setTexto(valor);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (valor.trim().length < 2) {
+      setSugestoes([]);
+      setDropdownAberto(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      setBuscando(true);
+      try {
+        const res = await fetch(`/api/v1/enderecos?q=${encodeURIComponent(valor)}&limit=8`);
+        if (res.ok) {
+          const data: EnderecoSugestao[] = await res.json();
+          setSugestoes(data);
+          setDropdownAberto(data.length > 0);
+        }
+      } catch {
+        // silencioso
+      } finally {
+        setBuscando(false);
+      }
+    }, 300);
   };
 
-  const handleCadastrar = async () => {
-    if (!cepCompleto(cep)) return;
+  const handleSelecionarSugestao = async (sugestao: EnderecoSugestao) => {
+    setSugestoes([]);
+    setDropdownAberto(false);
 
+    if (!sugestao.cep) {
+      toast.error("Endereço selecionado não possui CEP associado");
+      setTexto(sugestao.label);
+      return;
+    }
+
+    const cepLimpo = sugestao.cep.replace(/\D/g, "");
+    setTexto(sugestao.label);
     setCarregando(true);
     try {
       const res = await fetch("/api/v1/ceps", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cep: cep.replace(/\D/g, "") }),
+        body: JSON.stringify({ cep: cepLimpo }),
       });
 
       if (res.status === 409) {
@@ -124,18 +174,12 @@ export function CadastrarCepPage() {
 
       const novo: Cep = await res.json();
       setCepsCadastrados((prev) => [novo, ...prev]);
-      setCep("");
-      toast.success(`CEP ${cep} cadastrado e enfileirado`);
+      setTexto("");
+      toast.success(`${sugestao.label} cadastrado e enfileirado`);
     } catch {
       toast.error("Erro de conexao com o servidor");
     } finally {
       setCarregando(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleCadastrar();
     }
   };
 
@@ -181,41 +225,55 @@ export function CadastrarCepPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Novo CEP</CardTitle>
+          <CardTitle className="text-lg">Novo endereço</CardTitle>
           <CardDescription>
-            Digite o CEP da regiao que deseja monitorar
+            Digite o endereço ou CEP da região que deseja monitorar
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-3">
-            <div className="relative flex-1">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                name="cep"
-                type="text"
-                inputMode="numeric"
-                autoComplete="postal-code"
-                value={cep}
-                onChange={handleCepChange}
-                onKeyDown={handleKeyDown}
-                placeholder="Ex: 88015-200"
-                className="pl-11 h-12 text-base"
-                maxLength={9}
-              />
-            </div>
-            <Button
-              onClick={handleCadastrar}
-              disabled={!cepCompleto(cep) || carregando}
-              className="bg-accent hover:bg-accent/90 text-accent-foreground font-medium h-12 px-6"
-            >
-              {carregando ? (
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4 mr-1" />
-              )}
-              Cadastrar
-            </Button>
+          <div ref={wrapperRef} className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
+            {buscando && (
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground z-10" />
+            )}
+            <Input
+              type="text"
+              autoComplete="off"
+              value={texto}
+              onChange={handleTextoChange}
+              onFocus={() => sugestoes.length > 0 && setDropdownAberto(true)}
+              placeholder="Ex: Rua das Flores, Joinville ou 88015-200"
+              className="pl-11 h-12 text-base pr-10"
+            />
+
+            {dropdownAberto && sugestoes.length > 0 && (
+              <ul className="absolute z-50 w-full mt-1 bg-background border border-border rounded-xl shadow-lg overflow-hidden">
+                {sugestoes.map((s, i) => (
+                  <li
+                    key={i}
+                    onMouseDown={() => handleSelecionarSugestao(s)}
+                    className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-accent/10 border-b border-border/50 last:border-0"
+                  >
+                    <MapPin className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="text-sm text-foreground">{s.label}</span>
+                      {s.cep && (
+                        <span className="text-xs text-muted-foreground">CEP: {s.cep}</span>
+                      )}
+                      {!s.cep && (
+                        <span className="text-xs text-muted-foreground italic">sem CEP</span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
+          {carregando && (
+            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" /> Cadastrando...
+            </p>
+          )}
         </CardContent>
       </Card>
 
