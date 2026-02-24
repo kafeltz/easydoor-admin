@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/api/client";
 import { Building2, Loader2, ExternalLink, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -184,7 +185,7 @@ export function ImoveisPage() {
   const [expandido, setExpandido] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/v1/ceps")
+    apiFetch("/api/v1/ceps")
       .then((res) => res.json())
       .then((data: Cep[]) => {
         const concluidos = data.filter((c) => c.status === "concluido");

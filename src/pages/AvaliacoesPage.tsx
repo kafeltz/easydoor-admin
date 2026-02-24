@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "@/api/client";
 import { ClipboardList, Loader2, Download, X } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,7 +95,7 @@ export function AvaliacoesPage() {
   const [filtroPrecoMax, setFiltroPrecoMax] = useState("");
 
   useEffect(() => {
-    fetch("/api/v1/avaliacoes")
+    apiFetch("/api/v1/avaliacoes")
       .then((res) => res.json())
       .then((data: Avaliacao[]) => setAvaliacoes(data))
       .catch(() => toast.error("Erro ao carregar avaliacoes"))

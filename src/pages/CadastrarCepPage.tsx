@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { apiFetch } from "@/api/client";
 import { MapPin, Plus, Trash2, RotateCcw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,7 @@ export function CadastrarCepPage() {
 
   const buscarCeps = useCallback(async () => {
     try {
-      const res = await fetch("/api/v1/ceps");
+      const res = await apiFetch("/api/v1/ceps");
       if (res.ok) {
         const data: Cep[] = await res.json();
         setCepsCadastrados(data);
@@ -164,7 +165,7 @@ export function CadastrarCepPage() {
     setTexto(sugestao.label);
     setCarregando(true);
     try {
-      const res = await fetch("/api/v1/ceps", {
+      const res = await apiFetch("/api/v1/ceps", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cep: cepLimpo, tipo }),

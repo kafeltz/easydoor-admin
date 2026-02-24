@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { apiFetch } from "@/api/client";
 import { Link } from "react-router-dom";
 import {
   Loader2,
@@ -124,8 +125,8 @@ export function DashboardPage() {
   const buscarDados = useCallback(async () => {
     try {
       const [resCeps, resAval] = await Promise.all([
-        fetch("/api/v1/ceps"),
-        fetch("/api/v1/avaliacoes"),
+        apiFetch("/api/v1/ceps"),
+        apiFetch("/api/v1/avaliacoes"),
       ]);
 
       if (resCeps.ok) setCeps(await resCeps.json());
