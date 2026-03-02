@@ -1,0 +1,17 @@
+name: Trigger build no ed-infra
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  trigger-infra-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar workflow de build no ed-infra
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GITEA_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"ref":"master","inputs":{}}' \
+            "https://git.easydoor.ai/api/v1/repos/EasyDoor/ed-infra/actions/workflows/build-and-push.yml/dispatches"
