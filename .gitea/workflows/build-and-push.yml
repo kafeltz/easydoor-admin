@@ -1,0 +1,64 @@
+name: Build e Push Docker
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build-and-push:
+    runs-on: [self-hosted, ubuntu-latest]
+
+    env:
+      REGISTRY: docker.easydoor.ai/easydoor
+      IMAGE_NAME: ed-admin
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login no Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: docker.easydoor.ai
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build e Push
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          IMAGE_VERSION=${REGISTRY}/${IMAGE_NAME}:${SHA}
+          IMAGE_LATEST=${REGISTRY}/${IMAGE_NAME}:latest
+
+          docker build \
+            --build-arg PORT=4176 \
+            --cache-from ${IMAGE_LATEST} \
+            -t ${IMAGE_VERSION} \
+            -t ${IMAGE_LATEST} \
+            .
+
+          for i in 1 2 3; do
+            docker push ${IMAGE_VERSION} && break
+            echo "⚠️ Push falhou, tentativa $i/3..."
+            sleep 5
+          done
+
+          for i in 1 2 3; do
+            docker push ${IMAGE_LATEST} && break
+            echo "⚠️ Push latest falhou, tentativa $i/3..."
+            sleep 5
+          done
+
+      - name: Trigger deploy no ed-infra
+        run: |
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GITEA_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"event_type":"service-updated","client_payload":{"service":"ed-admin"}}' \
+            "https://git.easydoor.ai/api/v1/repos/EasyDoor/ed-infra/dispatches"
+
+      - name: Cleanup Docker
+        if: always()
+        run: |
+          docker builder prune -f || true
+          docker image prune -f || true
+          docker container prune -f || true
