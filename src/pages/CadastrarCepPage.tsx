@@ -255,6 +255,7 @@ export function CadastrarCepPage() {
   const [sugestoes, setSugestoes] = useState<EnderecoSugestao[]>([]);
   const [dropdownAberto, setDropdownAberto] = useState(false);
   const [buscando, setBuscando] = useState(false);
+  const [cepNaoEncontrado, setCepNaoEncontrado] = useState(false);
   const [cepsCadastrados, setCepsCadastrados] = useState<Cep[]>([]);
   const [carregando, setCarregando] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -308,6 +309,7 @@ export function CadastrarCepPage() {
     if (valor.trim().length < 2) {
       setSugestoes([]);
       setDropdownAberto(false);
+      setCepNaoEncontrado(false);
       return;
     }
 
@@ -319,6 +321,7 @@ export function CadastrarCepPage() {
           const data: EnderecoSugestao[] = await res.json();
           setSugestoes(data);
           setDropdownAberto(data.length > 0);
+          setCepNaoEncontrado(data.length === 0 && valor.replace(/\D/g, "").length === 8);
         }
       } catch {
         // silencioso
@@ -486,6 +489,11 @@ export function CadastrarCepPage() {
               </ul>
             )}
           </div>
+          {cepNaoEncontrado && (
+            <p className="text-xs text-amber-600 mt-1">
+              CEP não encontrado na base. Tente pesquisar pelo nome do logradouro.
+            </p>
+          )}
           {carregando && (
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
               <Loader2 className="w-3 h-3 animate-spin" /> Cadastrando...
