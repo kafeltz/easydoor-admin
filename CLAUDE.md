@@ -52,3 +52,27 @@ Dashboard administrativo **EasyDoor** — React 18 + TypeScript + Vite 5.
 - Componentes UI usam `forwardRef` e aceitam `className` via props
 - Estado local com `useState`/`useRef` — sem state management global
 - Nomes de variáveis e textos da UI em português
+
+## Padrão de Variáveis de Ambiente
+
+Sem fallbacks em variáveis de conectividade. Se a variável não estiver definida, o serviço deve falhar — não subir com valor errado.
+
+```typescript
+// CORRETO
+url: import.meta.env.VITE_KEYCLOAK_URL,
+realm: import.meta.env.VITE_KEYCLOAK_REALM,
+clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
+
+// ERRADO
+realm: import.meta.env.VITE_KEYCLOAK_REALM ?? "easydoor-internal",
+```
+
+```dockerfile
+# CORRETO
+ARG VITE_KEYCLOAK_URL
+
+# ERRADO
+ARG VITE_KEYCLOAK_URL=http://localhost:8080
+```
+
+Regra completa com todos os exemplos: `CLAUDE.md` raiz do projeto.
