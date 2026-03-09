@@ -89,16 +89,38 @@ export function usePipeline() {
           parametros: paramsParaBackend(currentParams),
         });
         const scoreMinimo = currentParams.SCORING_SCORE_MINIMO ?? 65;
+        // Mapeia ComparavelUsado → Imovel (campos ausentes ficam undefined)
+        const comparaveisCompletos: Imovel[] = res.comparaveis.map((c) => ({
+          id: c.id,
+          preco: c.preco,
+          area_m2: 0,
+          preco_ajustado: c.preco_ajustado,
+          pam2: c.pam2,
+          score: c.score,
+          distancia_metros: c.distancia_metros,
+          outlier: c.outlier,
+        }));
         setResult({
-          alvo: res.alvo,
-          comparaveis: res.comparaveis,
-          faixa: res.faixa,
+          alvo: {
+            ...alvo,
+            area_equivalente_m2: res.alvo.area_equivalente,
+            pam2: res.alvo.pam2_medio,
+          },
+          comparaveis: comparaveisCompletos,
+          faixa: {
+            ...res.faixa,
+            pam2_medio: res.alvo.pam2_medio,
+            area_equivalente_alvo: res.alvo.area_equivalente,
+            total_validos: res.comparaveis.filter(
+              (c) => !c.outlier && c.score >= scoreMinimo
+            ).length,
+          },
           confidence: res.confidence,
-          validos: res.comparaveis.filter(
+          validos: comparaveisCompletos.filter(
             (c) => !c.outlier && (c.score ?? 0) >= scoreMinimo
           ),
-          outliers: res.comparaveis.filter((c) => c.outlier),
-          filtradosPorScore: res.comparaveis.filter(
+          outliers: comparaveisCompletos.filter((c) => c.outlier),
+          filtradosPorScore: comparaveisCompletos.filter(
             (c) => !c.outlier && (c.score ?? 0) < scoreMinimo
           ),
         });

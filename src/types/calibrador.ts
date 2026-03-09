@@ -48,22 +48,22 @@ export interface FaixaResult {
   medio: number | null;
   maximo: number | null;
   sugerido: number | null;
-  pam2_minimo: number | null;
-  pam2_medio: number | null;
-  pam2_maximo: number | null;
-  total_validos: number;
-  area_equivalente_alvo: number | null;
+  pam2_minimo?: number | null;
+  pam2_medio?: number | null;
+  pam2_maximo?: number | null;
+  total_validos?: number;
+  area_equivalente_alvo?: number | null;
 }
 
 export interface ConfidenceResult {
   score: number;
-  sub_scores: {
+  sub_scores?: {
     quantidade: number;
     dispersao: number;
     qualidade: number;
     similaridade: number;
   };
-  total_validos: number;
+  total_validos?: number;
   diagnostico: string;
 }
 
@@ -110,10 +110,33 @@ export interface SimularRequest {
   parametros?: Record<string, number>;
 }
 
-// Resposta do endpoint /api/v1/avaliar/simular
+// Tipos exatos que o backend retorna em /api/v1/avaliar/simular
+export interface ComparavelUsado {
+  id: string;
+  preco: number;
+  preco_ajustado: number;
+  pam2: number;
+  score: number;
+  distancia_metros: number;
+  outlier: boolean;
+}
+
+export interface AlvoInfo {
+  area_equivalente: number;
+  pam2_medio: number | null;
+}
+
 export interface SimularResponse {
-  faixa: FaixaResult;
-  confidence: ConfidenceResult;
-  comparaveis: Imovel[];
-  alvo: Imovel;
+  faixa: {
+    minimo: number;
+    medio: number;
+    maximo: number;
+    sugerido: number;
+  };
+  confidence: {
+    score: number;
+    diagnostico: string;
+  };
+  comparaveis: ComparavelUsado[];
+  alvo: AlvoInfo;
 }

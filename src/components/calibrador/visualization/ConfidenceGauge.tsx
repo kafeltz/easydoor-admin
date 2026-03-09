@@ -67,24 +67,26 @@ export function ConfidenceGauge({ confidence, params }: ConfidenceGaugeProps) {
           <div className="text-sm font-medium" style={{ color }}>
             {confidence.diagnostico}
           </div>
-          <div className="space-y-0.5 text-xs text-muted-foreground">
-            <div className="flex justify-between">
-              <span>Quantidade</span>
-              <span className="font-mono">{confidence.sub_scores.quantidade.toFixed(1)}</span>
+          {confidence.sub_scores && (
+            <div className="space-y-0.5 text-xs text-muted-foreground">
+              <div className="flex justify-between">
+                <span>Quantidade</span>
+                <span className="font-mono">{confidence.sub_scores.quantidade.toFixed(1)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Dispersão</span>
+                <span className="font-mono">{confidence.sub_scores.dispersao.toFixed(1)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Qualidade</span>
+                <span className="font-mono">{confidence.sub_scores.qualidade.toFixed(1)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Similaridade</span>
+                <span className="font-mono">{confidence.sub_scores.similaridade.toFixed(1)}</span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span>Dispersão</span>
-              <span className="font-mono">{confidence.sub_scores.dispersao.toFixed(1)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Qualidade</span>
-              <span className="font-mono">{confidence.sub_scores.qualidade.toFixed(1)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Similaridade</span>
-              <span className="font-mono">{confidence.sub_scores.similaridade.toFixed(1)}</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
