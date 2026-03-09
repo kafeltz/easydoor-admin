@@ -78,4 +78,14 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+  .metric-value {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
 }

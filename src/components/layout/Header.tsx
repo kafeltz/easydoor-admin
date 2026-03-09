@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, MapPin, Building2, ClipboardList, Settings, Shield } from "lucide-react";
+import { LayoutDashboard, MapPin, Building2, ClipboardList, Settings, SlidersHorizontal, Shield } from "lucide-react";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -7,6 +7,7 @@ const navItems = [
   { to: "/imoveis", label: "Imoveis", icon: Building2 },
   { to: "/avaliacoes", label: "Avaliacoes", icon: ClipboardList },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
+  { to: "/calibrador", label: "Calibrador", icon: SlidersHorizontal },
 ];
 
 export function Header() {

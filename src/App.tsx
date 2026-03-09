@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { FullWidthLayout } from "@/components/layout/FullWidthLayout";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { CadastrarCepPage } from "@/pages/CadastrarCepPage";
 import { ImoveisPage } from "@/pages/ImoveisPage";
 import { AvaliacoesPage } from "@/pages/AvaliacoesPage";
 import { ConfiguracoesPage } from "@/pages/ConfiguracoesPage";
+import { CalibradorPage } from "@/pages/calibrador/CalibradorPage";
 import keycloak from "./keycloak";
 
 function App() {
@@ -42,6 +44,9 @@ function App() {
         <Route path="/imoveis" element={<ImoveisPage />} />
         <Route path="/avaliacoes" element={<AvaliacoesPage />} />
         <Route path="/configuracoes" element={<ConfiguracoesPage />} />
+      </Route>
+      <Route element={<FullWidthLayout />}>
+        <Route path="/calibrador" element={<CalibradorPage />} />
       </Route>
     </Routes>
   );
