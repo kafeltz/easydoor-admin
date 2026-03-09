@@ -32,6 +32,9 @@ jobs:
 
           docker build \
             --build-arg PORT=4176 \
+            --build-arg VITE_KEYCLOAK_URL=${{ secrets.VITE_KEYCLOAK_URL }} \
+            --build-arg VITE_KEYCLOAK_REALM=${{ secrets.VITE_KEYCLOAK_REALM }} \
+            --build-arg VITE_KEYCLOAK_CLIENT_ID=${{ secrets.VITE_KEYCLOAK_CLIENT_ID }} \
             --cache-from ${IMAGE_LATEST} \
             -t ${IMAGE_VERSION} \
             -t ${IMAGE_LATEST} \
