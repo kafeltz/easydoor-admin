@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
-import type { PipelineResult } from "@/engine/types";
+import type { PipelineResult } from "@/types/calibrador";
 
 interface PipelineSummaryProps {
   result: PipelineResult;

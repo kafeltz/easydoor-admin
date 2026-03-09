@@ -1,4 +1,4 @@
-import type { ConfidenceResult, PipelineParams } from "@/engine/types";
+import type { ConfidenceResult, PipelineParams } from "@/types/calibrador";
 
 interface ConfidenceGaugeProps {
   confidence: ConfidenceResult;
@@ -6,7 +6,7 @@ interface ConfidenceGaugeProps {
 }
 
 export function ConfidenceGauge({ confidence, params }: ConfidenceGaugeProps) {
-  const value = confidence.confidence;
+  const value = confidence.score;
   const faixaAlta = params.CONFIDENCE_FAIXA_ALTA;
   const faixaModerada = params.CONFIDENCE_FAIXA_MODERADA;
   const faixaBaixa = params.CONFIDENCE_FAIXA_BAIXA;

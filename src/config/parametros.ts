@@ -1,4 +1,4 @@
-import type { ParameterMeta, PipelineParams } from "./types";
+import type { ParameterMeta, PipelineParams } from "@/types/calibrador";
 
 export const PARAMETERS: ParameterMeta[] = [
   // Homogeneização

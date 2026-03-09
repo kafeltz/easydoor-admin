@@ -1,8 +1,8 @@
 import { Accordion } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ParameterGroup } from "./ParameterGroup";
-import { PARAMETERS, GROUPS } from "@/engine/defaults";
-import type { PipelineParams } from "@/engine/types";
+import { PARAMETERS, GROUPS } from "@/config/parametros";
+import type { PipelineParams } from "@/types/calibrador";
 
 interface ParameterSidebarProps {
   params: PipelineParams;

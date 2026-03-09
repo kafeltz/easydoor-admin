@@ -1,5 +1,5 @@
 import { Slider } from "@/components/ui/slider";
-import type { ParameterMeta } from "@/engine/types";
+import type { ParameterMeta } from "@/types/calibrador";
 
 interface ParameterSliderProps {
   meta: ParameterMeta;

@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import type { PipelineParams } from "@/engine/types";
+import type { PipelineParams } from "@/types/calibrador";
 
 interface WeightGroupBadgeProps {
   keys: string[];

@@ -21,8 +21,8 @@ export function CalibradorPage() {
     carregarPremissa,
     pesosValidos,
     buscarComparaveis,
-    carregandoComparaveis,
-    mensagemComparaveis,
+    carregandoSimulacao,
+    mensagemSimulacao,
   } = usePipeline();
 
   const [salvarModal, setSalvarModal] = useState(false);
@@ -143,8 +143,8 @@ export function CalibradorPage() {
       {/* Formulário do imóvel alvo + busca de comparáveis */}
       <AlvoForm
         onSubmit={buscarComparaveis}
-        carregando={carregandoComparaveis}
-        mensagemComparaveis={mensagemComparaveis}
+        carregando={carregandoSimulacao}
+        mensagemSimulacao={mensagemSimulacao}
       />
 
       <CalibradorLayout

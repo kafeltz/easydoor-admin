@@ -4,14 +4,22 @@ import { PriceRangeBar } from "./PriceRangeBar";
 import { ConfidenceGauge } from "./ConfidenceGauge";
 import { ComparableTable } from "./ComparableTable";
 import { Pam2Chart } from "./Pam2Chart";
-import type { PipelineResult, PipelineParams } from "@/engine/types";
+import type { PipelineResult, PipelineParams } from "@/types/calibrador";
 
 interface ResultsPanelProps {
-  result: PipelineResult;
+  result: PipelineResult | null;
   params: PipelineParams;
 }
 
 export function ResultsPanel({ result, params }: ResultsPanelProps) {
+  if (!result) {
+    return (
+      <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+        Preencha os dados do imóvel e clique em <strong className="mx-1">Avaliar</strong> para ver o resultado.
+      </div>
+    );
+  }
+
   const firstComp = result.comparaveis[0];
   const mediana = firstComp?.mediana || 0;
   const piso = firstComp?.piso || 0;

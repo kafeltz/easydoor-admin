@@ -1,7 +1,7 @@
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Cell,
 } from "recharts";
-import type { Imovel } from "@/engine/types";
+import type { Imovel } from "@/types/calibrador";
 
 interface Pam2ChartProps {
   comparaveis: Imovel[];

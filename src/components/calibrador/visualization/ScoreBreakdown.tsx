@@ -1,4 +1,4 @@
-import type { Imovel } from "@/engine/types";
+import type { Imovel } from "@/types/calibrador";
 
 interface ScoreBreakdownProps {
   comp: Imovel;

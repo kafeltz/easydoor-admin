@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import type { Imovel } from "@/engine/types";
+import type { Imovel } from "@/types/calibrador";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 
 interface ComparableTableProps {

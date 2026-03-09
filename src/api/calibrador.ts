@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import type { Imovel } from "@/engine/types";
+import type { SimularRequest, SimularResponse } from "@/types/calibrador";
 
 export interface PremissaResumo {
   versao: number;
@@ -16,13 +16,6 @@ export interface PremissaCompleta {
   criado_em: string;
 }
 
-export interface BuscaComparaveisParams {
-  lat: number;
-  lon: number;
-  raio?: number;
-  tipo?: string;
-}
-
 async function apiFetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   const res = await apiFetch(path, {
@@ -36,17 +29,12 @@ async function apiFetchJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  comparaveis: {
-    buscar: ({ lat, lon, raio = 500, tipo }: BuscaComparaveisParams) => {
-      const params = new URLSearchParams({
-        lat: String(lat),
-        lon: String(lon),
-        raio: String(raio),
-      });
-      if (tipo) params.set("tipo", tipo);
-      return apiFetchJson<Imovel[]>(`/api/v1/comparaveis?${params}`);
-    },
-  },
+  simular: (req: SimularRequest) =>
+    apiFetchJson<SimularResponse>("/api/v1/avaliar/simular", {
+      method: "POST",
+      body: JSON.stringify(req),
+    }),
+
   premissas: {
     listar: () =>
       apiFetchJson<PremissaResumo[]>("/api/v1/premissas"),

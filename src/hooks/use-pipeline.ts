@@ -1,10 +1,8 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
-import type { PipelineParams, PipelineResult, Imovel } from "@/engine/types";
-import { getDefaultParams, PARAMETERS, WEIGHT_GROUPS } from "@/engine/defaults";
-import { runPipeline } from "@/engine/pipeline";
-import { ALVO, COMPARAVEIS } from "@/data/mock-properties";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import type { PipelineParams, PipelineResult, Imovel } from "@/types/calibrador";
+import { getDefaultParams, PARAMETERS, WEIGHT_GROUPS } from "@/config/parametros";
 import { api } from "@/api/calibrador";
-import type { BuscaComparaveisParams, PremissaResumo } from "@/api/calibrador";
+import type { PremissaResumo } from "@/api/calibrador";
 
 // Calibrador usa UPPERCASE, backend usa lowercase — conversão direta
 function paramsParaBackend(params: PipelineParams): Record<string, number> {
@@ -38,10 +36,15 @@ export function usePipeline() {
   const [premissas, setPremissas] = useState<PremissaResumo[]>([]);
   const [versaoAtiva, setVersaoAtiva] = useState<number | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [alvo, setAlvo] = useState<Imovel>(ALVO);
-  const [comparaveis, setComparaveis] = useState<Imovel[]>(COMPARAVEIS);
-  const [carregandoComparaveis, setCarregandoComparaveis] = useState(false);
-  const [mensagemComparaveis, setMensagemComparaveis] = useState<string | null>(null);
+  const [result, setResult] = useState<PipelineResult | null>(null);
+  const [carregandoSimulacao, setCarregandoSimulacao] = useState(false);
+  const [mensagemSimulacao, setMensagemSimulacao] = useState<string | null>(null);
+
+  // Refs para evitar closures desatualizadas nos debounces
+  const alvoRef = useRef<{ alvo: Imovel; raio: number; tipo: string } | null>(null);
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Carrega premissas do backend ao montar; cai em defaults se backend offline
   useEffect(() => {
@@ -63,32 +66,70 @@ export function usePipeline() {
     carregar();
   }, []);
 
-  // Busca comparáveis reais via lat/lon/raio/tipo
-  const buscarComparaveis = useCallback(
-    async (novoAlvo: Imovel, busca: BuscaComparaveisParams) => {
-      setAlvo(novoAlvo);
-      setCarregandoComparaveis(true);
-      setMensagemComparaveis(null);
+  const executarSimulacao = useCallback(
+    async (alvo: Imovel, raio: number, tipo: string, currentParams: PipelineParams) => {
+      setCarregandoSimulacao(true);
+      setMensagemSimulacao(null);
       try {
-        const resultado = await api.comparaveis.buscar(busca);
-        if (resultado.length > 0) {
-          setComparaveis(resultado);
-          setMensagemComparaveis(null);
-        } else {
-          setComparaveis(COMPARAVEIS);
-          setMensagemComparaveis(
-            `Nenhum comparável encontrado no raio de ${busca.raio ?? 500}m. Tente aumentar o raio. Exibindo dados mock.`
-          );
-        }
-      } catch {
-        console.warn("[calibrador] Erro ao buscar comparáveis — usando mock.");
-        setComparaveis(COMPARAVEIS);
-        setMensagemComparaveis("Backend indisponível — exibindo dados mock.");
+        const res = await api.simular({
+          lat: alvo.lat!,
+          lon: alvo.lon!,
+          area_m2: alvo.area_m2,
+          area_externa_m2: alvo.area_externa_m2,
+          dormitorios: alvo.dormitorios,
+          suites: alvo.suites,
+          banheiros: alvo.banheiros,
+          vagas: alvo.vagas,
+          idade_predio_anos: alvo.idade_predio_anos,
+          andar: alvo.extras?.andar as number | undefined,
+          mobiliado: alvo.extras?.mobiliado as boolean | undefined,
+          ar_condicionado: alvo.extras?.ar_condicionado as boolean | undefined,
+          tipo,
+          raio,
+          parametros: paramsParaBackend(currentParams),
+        });
+        const scoreMinimo = currentParams.SCORING_SCORE_MINIMO ?? 65;
+        setResult({
+          alvo: res.alvo,
+          comparaveis: res.comparaveis,
+          faixa: res.faixa,
+          confidence: res.confidence,
+          validos: res.comparaveis.filter(
+            (c) => !c.outlier && (c.score ?? 0) >= scoreMinimo
+          ),
+          outliers: res.comparaveis.filter((c) => c.outlier),
+          filtradosPorScore: res.comparaveis.filter(
+            (c) => !c.outlier && (c.score ?? 0) < scoreMinimo
+          ),
+        });
+      } catch (e) {
+        setMensagemSimulacao(`Erro na simulação: ${e}`);
       } finally {
-        setCarregandoComparaveis(false);
+        setCarregandoSimulacao(false);
       }
     },
     []
+  );
+
+  // Re-simula com debounce quando params mudam (só se já houver alvo)
+  useEffect(() => {
+    if (!alvoRef.current) return;
+    const { alvo, raio, tipo } = alvoRef.current;
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      executarSimulacao(alvo, raio, tipo, paramsRef.current);
+    }, 500);
+    return () => clearTimeout(debounceRef.current);
+  }, [params, executarSimulacao]);
+
+  // Chamado pelo AlvoForm ao submeter
+  const buscarComparaveis = useCallback(
+    async (alvo: Imovel, raio: number, tipo: string) => {
+      alvoRef.current = { alvo, raio, tipo };
+      clearTimeout(debounceRef.current);
+      await executarSimulacao(alvo, raio, tipo, paramsRef.current);
+    },
+    [executarSimulacao]
   );
 
   const updateParam = useCallback((key: string, value: number) => {
@@ -100,17 +141,15 @@ export function usePipeline() {
     setVersaoAtiva(null);
   }, []);
 
-  // Salva os params atuais como nova versão imutável no backend
   const salvarPremissa = useCallback(
     async (descricao?: string | null) => {
-      const nova = await api.premissas.criar(paramsParaBackend(params), descricao);
+      const nova = await api.premissas.criar(paramsParaBackend(paramsRef.current), descricao);
       setPremissas((prev) => [nova, ...prev]);
       return nova;
     },
-    [params]
+    []
   );
 
-  // Ativa uma versão e carrega seus params nos sliders
   const ativarPremissa = useCallback(async (versao: number) => {
     const ativada = await api.premissas.ativar(versao);
     setPremissas((prev) => prev.map((p) => ({ ...p, ativa: p.versao === versao })));
@@ -119,7 +158,6 @@ export function usePipeline() {
     return ativada;
   }, []);
 
-  // Carrega os params de uma versão nos sliders sem ativá-la no banco
   const carregarPremissa = useCallback(async (versao: number) => {
     const prm = await api.premissas.obter(versao);
     setVersaoAtiva(prm.versao);
@@ -128,11 +166,6 @@ export function usePipeline() {
   }, []);
 
   const pesosValidos = useMemo(() => calcularPesosValidos(params), [params]);
-
-  const result: PipelineResult = useMemo(
-    () => runPipeline(alvo, comparaveis, params),
-    [alvo, comparaveis, params]
-  );
 
   return {
     params,
@@ -147,7 +180,7 @@ export function usePipeline() {
     carregarPremissa,
     pesosValidos,
     buscarComparaveis,
-    carregandoComparaveis,
-    mensagemComparaveis,
+    carregandoSimulacao,
+    mensagemSimulacao,
   };
 }

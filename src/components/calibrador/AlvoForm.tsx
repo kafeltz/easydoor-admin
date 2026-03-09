@@ -1,7 +1,5 @@
 import { useState } from "react";
-import type { Imovel } from "@/engine/types";
-import type { BuscaComparaveisParams } from "@/api/calibrador";
-import { ALVO } from "@/data/mock-properties";
+import type { Imovel } from "@/types/calibrador";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -13,9 +11,9 @@ import {
 const RAIO_OPTIONS = [300, 500, 1000, 2000] as const;
 
 interface AlvoFormProps {
-  onSubmit: (alvo: Imovel, busca: BuscaComparaveisParams) => void;
+  onSubmit: (alvo: Imovel, raio: number, tipo: string) => void;
   carregando: boolean;
-  mensagemComparaveis?: string | null;
+  mensagemSimulacao?: string | null;
 }
 
 function numOrNull(v: string): number | null {
@@ -23,24 +21,63 @@ function numOrNull(v: string): number | null {
   return v === "" || isNaN(n) ? null : n;
 }
 
-export function AlvoForm({ onSubmit, carregando, mensagemComparaveis }: AlvoFormProps) {
-  // Obrigatórios — preenchidos com defaults do ALVO mock
-  const [lat, setLat] = useState(String(ALVO.lat));
-  const [lon, setLon] = useState(String(ALVO.lon));
-  const [area, setArea] = useState(String(ALVO.area_m2));
+export function AlvoForm({ onSubmit, carregando, mensagemSimulacao }: AlvoFormProps) {
+  const [cep, setCep] = useState("");
+  const [cepErro, setCepErro] = useState<string | null>(null);
+  const [cepCarregando, setCepCarregando] = useState(false);
+
+  const [lat, setLat] = useState("");
+  const [lon, setLon] = useState("");
+  const [area, setArea] = useState("");
   const [tipo, setTipo] = useState<"apartamento" | "casa">("apartamento");
   const [raio, setRaio] = useState(500);
 
   // Opcionais
-  const [areaExterna, setAreaExterna] = useState(String(ALVO.area_externa_m2 ?? ""));
-  const [dormitorios, setDormitorios] = useState(String(ALVO.dormitorios ?? ""));
-  const [suites, setSuites] = useState(String(ALVO.suites ?? ""));
-  const [banheiros, setBanheiros] = useState(String(ALVO.banheiros ?? ""));
-  const [vagas, setVagas] = useState(String(ALVO.vagas ?? ""));
-  const [idadePredio, setIdadePredio] = useState(String(ALVO.idade_predio_anos ?? ""));
-  const [andar, setAndar] = useState(String(ALVO.extras?.andar ?? ""));
-  const [mobiliado, setMobiliado] = useState(ALVO.extras?.mobiliado ?? false);
-  const [arCondicionado, setArCondicionado] = useState(ALVO.extras?.ar_condicionado ?? false);
+  const [areaExterna, setAreaExterna] = useState("");
+  const [dormitorios, setDormitorios] = useState("");
+  const [suites, setSuites] = useState("");
+  const [banheiros, setBanheiros] = useState("");
+  const [vagas, setVagas] = useState("");
+  const [idadePredio, setIdadePredio] = useState("");
+  const [andar, setAndar] = useState("");
+  const [mobiliado, setMobiliado] = useState(false);
+  const [arCondicionado, setArCondicionado] = useState(false);
+
+  const buscarCep = async (valor: string) => {
+    const cepLimpo = valor.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) return;
+    setCepCarregando(true);
+    setCepErro(null);
+    try {
+      const res = await fetch(`/api/v1/dados-regiao/${cepLimpo}`);
+      if (!res.ok) throw new Error("CEP não encontrado");
+      const data = await res.json();
+      if (data.lat && data.lon) {
+        setLat(String(data.lat));
+        setLon(String(data.lon));
+      } else {
+        setCepErro("CEP encontrado, mas sem coordenadas.");
+      }
+    } catch {
+      setCepErro("CEP não encontrado.");
+    } finally {
+      setCepCarregando(false);
+    }
+  };
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value.replace(/\D/g, "").slice(0, 8);
+    setCep(valor);
+    setCepErro(null);
+  };
+
+  const handleCepBlur = () => buscarCep(cep);
+  const handleCepKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      buscarCep(cep);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +99,7 @@ export function AlvoForm({ onSubmit, carregando, mensagemComparaveis }: AlvoForm
       idade_predio_anos: numOrNull(idadePredio),
       lat: latNum,
       lon: lonNum,
+      cep: cep || null,
       fonte: "formulario",
       extras: {
         andar: numOrNull(andar),
@@ -70,7 +108,7 @@ export function AlvoForm({ onSubmit, carregando, mensagemComparaveis }: AlvoForm
       },
     };
 
-    onSubmit(alvo, { lat: latNum, lon: lonNum, raio, tipo });
+    onSubmit(alvo, raio, tipo);
   };
 
   const inputCls =
@@ -84,6 +122,25 @@ export function AlvoForm({ onSubmit, carregando, mensagemComparaveis }: AlvoForm
     >
       {/* Linha principal: campos obrigatórios + botão */}
       <div className="flex items-end gap-3 flex-wrap">
+        <div className="flex flex-col gap-0.5">
+          <label className={labelCls}>CEP</label>
+          <div className="relative">
+            <input
+              type="text"
+              value={cep}
+              onChange={handleCepChange}
+              onBlur={handleCepBlur}
+              onKeyDown={handleCepKeyDown}
+              placeholder="00000000"
+              className={`${inputCls} w-24`}
+            />
+            {cepCarregando && (
+              <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                ...
+              </span>
+            )}
+          </div>
+        </div>
         <div className="flex flex-col gap-0.5">
           <label className={labelCls}>Latitude</label>
           <input
@@ -141,7 +198,7 @@ export function AlvoForm({ onSubmit, carregando, mensagemComparaveis }: AlvoForm
           </select>
         </div>
         <Button type="submit" size="sm" disabled={carregando}>
-          {carregando ? "Buscando..." : "Avaliar"}
+          {carregando ? "Calculando..." : "Avaliar"}
         </Button>
       </div>
 
@@ -244,9 +301,12 @@ export function AlvoForm({ onSubmit, carregando, mensagemComparaveis }: AlvoForm
         </AccordionItem>
       </Accordion>
 
-      {/* Mensagem de feedback */}
-      {mensagemComparaveis && (
-        <p className="text-xs text-amber-500">{mensagemComparaveis}</p>
+      {/* Feedback CEP */}
+      {cepErro && <p className="text-xs text-destructive">{cepErro}</p>}
+
+      {/* Feedback simulação */}
+      {mensagemSimulacao && (
+        <p className="text-xs text-amber-500">{mensagemSimulacao}</p>
       )}
     </form>
   );

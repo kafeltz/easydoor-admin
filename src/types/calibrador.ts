@@ -18,26 +18,21 @@ export interface Imovel {
   fonte?: string | null;
   extras?: Record<string, any> | null;
 
-  // Campos calculados (homogeneização)
+  // Campos calculados pelo backend
   area_equivalente_m2?: number;
   pam2?: number | null;
-
-  // Campos calculados (MAT)
   preco_ajustado?: number;
   pam2_original?: number | null;
   mat_ajuste_total?: number;
   mat_detalhes?: MatDetalhe[];
-
-  // Campos calculados (anti-outlier)
   outlier?: boolean;
   mediana?: number;
   piso?: number;
   teto?: number;
-
-  // Campos calculados (scoring)
   score?: number;
   sub_scores?: Record<string, number | null>;
   detalhes?: Record<string, Record<string, number>>;
+  distancia_metros?: number;
 }
 
 export interface MatDetalhe {
@@ -61,7 +56,7 @@ export interface FaixaResult {
 }
 
 export interface ConfidenceResult {
-  confidence: number;
+  score: number;
   sub_scores: {
     quantidade: number;
     dispersao: number;
@@ -95,3 +90,30 @@ export interface ParameterMeta {
 }
 
 export type PipelineParams = Record<string, number>;
+
+// Payload enviado ao endpoint /api/v1/avaliar/simular
+export interface SimularRequest {
+  lat: number;
+  lon: number;
+  area_m2: number;
+  area_externa_m2?: number | null;
+  dormitorios?: number | null;
+  suites?: number | null;
+  banheiros?: number | null;
+  vagas?: number | null;
+  idade_predio_anos?: number | null;
+  andar?: number | null;
+  mobiliado?: boolean;
+  ar_condicionado?: boolean;
+  tipo: string;
+  raio?: number;
+  parametros?: Record<string, number>;
+}
+
+// Resposta do endpoint /api/v1/avaliar/simular
+export interface SimularResponse {
+  faixa: FaixaResult;
+  confidence: ConfidenceResult;
+  comparaveis: Imovel[];
+  alvo: Imovel;
+}

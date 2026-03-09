@@ -1,8 +1,8 @@
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ParameterSlider } from "./ParameterSlider";
 import { WeightGroupBadge } from "./WeightGroupBadge";
-import type { ParameterMeta, PipelineParams } from "@/engine/types";
-import { WEIGHT_GROUPS } from "@/engine/defaults";
+import type { ParameterMeta, PipelineParams } from "@/types/calibrador";
+import { WEIGHT_GROUPS } from "@/config/parametros";
 
 interface ParameterGroupProps {
   group: string;

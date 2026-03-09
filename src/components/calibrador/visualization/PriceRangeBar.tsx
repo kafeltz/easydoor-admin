@@ -1,4 +1,4 @@
-import type { FaixaResult } from "@/engine/types";
+import type { FaixaResult } from "@/types/calibrador";
 
 interface PriceRangeBarProps {
   faixa: FaixaResult;
