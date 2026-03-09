@@ -1,10 +1,11 @@
-const API_TOKEN = import.meta.env.VITE_API_TOKEN ?? "";
+import keycloak from "@/keycloak";
 
 export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const token = keycloak.token;
   return fetch(path, {
     ...init,
     headers: {
-      ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
   });

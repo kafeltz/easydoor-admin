@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DashboardPage } from "@/pages/DashboardPage";
@@ -5,8 +6,33 @@ import { CadastrarCepPage } from "@/pages/CadastrarCepPage";
 import { ImoveisPage } from "@/pages/ImoveisPage";
 import { AvaliacoesPage } from "@/pages/AvaliacoesPage";
 import { ConfiguracoesPage } from "@/pages/ConfiguracoesPage";
+import keycloak from "./keycloak";
 
 function App() {
+  const [inicializado, setInicializado] = useState(false);
+
+  useEffect(() => {
+    keycloak
+      .init({
+        onLoad: "login-required",
+        pkceMethod: "S256",
+        checkLoginIframe: false,
+      })
+      .then(() => setInicializado(true))
+      .catch((err) => {
+        console.error("Falha ao inicializar Keycloak:", err);
+        setInicializado(true);
+      });
+
+    keycloak.onTokenExpired = () => {
+      keycloak.updateToken(70).catch(() => keycloak.login());
+    };
+  }, []);
+
+  if (!inicializado) {
+    return null;
+  }
+
   return (
     <Routes>
       <Route element={<AppLayout />}>
