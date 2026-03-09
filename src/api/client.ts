@@ -1,6 +1,12 @@
 import keycloak from "@/keycloak";
 
-export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  try {
+    await keycloak.updateToken(30);
+  } catch {
+    keycloak.login();
+    throw new Error("Sessão expirada — redirecionando para login.");
+  }
   const token = keycloak.token;
   return fetch(path, {
     ...init,
