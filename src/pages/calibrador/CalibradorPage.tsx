@@ -3,11 +3,9 @@ import { usePipeline } from "@/hooks/use-pipeline";
 import { CalibradorLayout } from "@/components/calibrador/layout/CalibradorLayout";
 import { ParameterSidebar } from "@/components/calibrador/sidebar/ParameterSidebar";
 import { ResultsPanel } from "@/components/calibrador/visualization/ResultsPanel";
-import { ExportPanel } from "@/components/calibrador/export/ExportPanel";
 import { AlvoForm } from "@/components/calibrador/AlvoForm";
-import { generateEnvText } from "@/engine/export-env";
 import { Button } from "@/components/ui/button";
-import { Save, RotateCcw, Copy, Check, ChevronDown } from "lucide-react";
+import { Save, RotateCcw, ChevronDown } from "lucide-react";
 
 export function CalibradorPage() {
   const {
@@ -29,16 +27,8 @@ export function CalibradorPage() {
 
   const [salvarModal, setSalvarModal] = useState(false);
   const [descricaoInput, setDescricaoInput] = useState("");
-  const [copied, setCopied] = useState(false);
   const [versaoMenuOpen, setVersaoMenuOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleExport = async () => {
-    const text = generateEnvText(params);
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const handleSalvar = () => {
     setDescricaoInput("");
@@ -144,19 +134,6 @@ export function CalibradorPage() {
           <RotateCcw className="w-3 h-3 mr-1" />
           Resetar
         </Button>
-        <Button variant="outline" size="sm" onClick={handleExport}>
-          {copied ? (
-            <>
-              <Check className="w-3 h-3 mr-1 text-accent" />
-              Copiado!
-            </>
-          ) : (
-            <>
-              <Copy className="w-3 h-3 mr-1" />
-              Export .env
-            </>
-          )}
-        </Button>
         <Button size="sm" onClick={handleSalvar} disabled={!pesosValidos}>
           <Save className="w-3 h-3 mr-1" />
           Salvar
@@ -176,9 +153,6 @@ export function CalibradorPage() {
         }
         main={
           <ResultsPanel result={result} params={params} />
-        }
-        footer={
-          <ExportPanel params={params} />
         }
       />
 
