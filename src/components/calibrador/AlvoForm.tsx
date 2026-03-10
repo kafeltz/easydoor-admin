@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Imovel } from "@/types/calibrador";
+import { apiFetch } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -49,7 +50,7 @@ export function AlvoForm({ onSubmit, carregando, mensagemSimulacao }: AlvoFormPr
     setCepCarregando(true);
     setCepErro(null);
     try {
-      const res = await fetch(`/api/v1/dados-regiao/${cepLimpo}`);
+      const res = await apiFetch(`/api/v1/dados-regiao/${cepLimpo}`);
       if (!res.ok) throw new Error("CEP não encontrado");
       const data = await res.json();
       if (data.lat && data.lon) {

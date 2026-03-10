@@ -29,6 +29,14 @@ function App() {
     keycloak.onTokenExpired = () => {
       keycloak.updateToken(70).catch(() => keycloak.login());
     };
+
+    const refreshInterval = setInterval(() => {
+      if (keycloak.authenticated) {
+        keycloak.updateToken(60).catch(() => keycloak.login());
+      }
+    }, 4 * 60 * 1000);
+
+    return () => clearInterval(refreshInterval);
   }, []);
 
   if (!inicializado) {
