@@ -28,7 +28,7 @@ export function AlvoForm({ onSubmit, carregando, mensagemSimulacao }: AlvoFormPr
 
   const [lat, setLat] = useState("");
   const [lon, setLon] = useState("");
-  const [area, setArea] = useState("");
+  const [area, setArea] = useState("80");
   const [tipo, setTipo] = useState<"apartamento" | "casa">("apartamento");
   const [raio, setRaio] = useState(500);
 
