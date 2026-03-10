@@ -53,9 +53,10 @@ export function AlvoForm({ onSubmit, carregando, mensagemSimulacao }: AlvoFormPr
       const res = await apiFetch(`/api/v1/dados-regiao/${cepLimpo}`);
       if (!res.ok) throw new Error("CEP não encontrado");
       const data = await res.json();
-      if (data.lat && data.lon) {
-        setLat(String(data.lat));
-        setLon(String(data.lon));
+      const { lat: latVal, lon: lonVal } = data.coordenadas ?? {};
+      if (latVal != null && lonVal != null) {
+        setLat(String(latVal));
+        setLon(String(lonVal));
       } else {
         setCepErro("CEP encontrado, mas sem coordenadas.");
       }
