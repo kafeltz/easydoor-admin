@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/api/client";
-import { MapPin, Trash2, RotateCcw, Loader2 } from "lucide-react";
+import { MapPin, Trash2, RotateCcw, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -258,6 +258,8 @@ export function CadastrarCepPage() {
   const [cepNaoEncontrado, setCepNaoEncontrado] = useState(false);
   const [cepsCadastrados, setCepsCadastrados] = useState<Cep[]>([]);
   const [carregando, setCarregando] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const porPagina = 20;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -364,6 +366,7 @@ export function CadastrarCepPage() {
 
       const novo: Cep = await res.json();
       setCepsCadastrados((prev) => [novo, ...prev]);
+      setPagina(1);
       setTexto("");
       toast.success(`${sugestao.label} cadastrado e enfileirado`);
       if (!intervalRef.current) {
@@ -402,7 +405,12 @@ export function CadastrarCepPage() {
         method: "DELETE",
       });
       if (res.ok) {
-        setCepsCadastrados((prev) => prev.filter((c) => c.id !== cepRemover.id));
+        setCepsCadastrados((prev) => {
+          const nova = prev.filter((c) => c.id !== cepRemover.id);
+          const maxPagina = Math.max(1, Math.ceil(nova.length / porPagina));
+          if (pagina > maxPagina) setPagina(maxPagina);
+          return nova;
+        });
         toast.info(`CEP ${formatarCepExibicao(cepRemover.cep)} removido`);
       }
     } catch {
@@ -511,7 +519,9 @@ export function CadastrarCepPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {cepsCadastrados.map((c) => (
+              {cepsCadastrados
+                .slice((pagina - 1) * porPagina, pagina * porPagina)
+                .map((c) => (
                 <div
                   key={c.id}
                   className="px-4 py-3 rounded-lg bg-muted/50 border border-border/50"
@@ -557,6 +567,61 @@ export function CadastrarCepPage() {
                 </div>
               ))}
             </div>
+            {cepsCadastrados.length > porPagina && (
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
+                <span className="text-xs text-muted-foreground">
+                  {(pagina - 1) * porPagina + 1}–{Math.min(pagina * porPagina, cepsCadastrados.length)} de {cepsCadastrados.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={pagina === 1}
+                    onClick={() => setPagina((p) => p - 1)}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  {(() => {
+                    const total = Math.ceil(cepsCadastrados.length / porPagina);
+                    const paginas: (number | "...")[] = [];
+                    if (total <= 7) {
+                      for (let i = 1; i <= total; i++) paginas.push(i);
+                    } else {
+                      paginas.push(1);
+                      if (pagina > 3) paginas.push("...");
+                      for (let i = Math.max(2, pagina - 1); i <= Math.min(total - 1, pagina + 1); i++) paginas.push(i);
+                      if (pagina < total - 2) paginas.push("...");
+                      paginas.push(total);
+                    }
+                    return paginas.map((p, idx) =>
+                      p === "..." ? (
+                        <span key={`dots-${idx}`} className="px-1 text-xs text-muted-foreground">...</span>
+                      ) : (
+                        <Button
+                          key={p}
+                          variant={p === pagina ? "default" : "ghost"}
+                          size="icon"
+                          className="h-8 w-8 text-xs"
+                          onClick={() => setPagina(p)}
+                        >
+                          {p}
+                        </Button>
+                      )
+                    );
+                  })()}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={pagina >= Math.ceil(cepsCadastrados.length / porPagina)}
+                    onClick={() => setPagina((p) => p + 1)}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
