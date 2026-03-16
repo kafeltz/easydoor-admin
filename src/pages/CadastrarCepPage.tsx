@@ -378,7 +378,7 @@ export function CadastrarCepPage() {
 
   const handleRetry = async (cepRetry: Cep) => {
     try {
-      const res = await fetch(`/api/v1/ceps/${cepRetry.id}/retry`, {
+      const res = await apiFetch(`/api/v1/ceps/${cepRetry.id}/retry`, {
         method: "POST",
       });
       if (res.ok) {
@@ -398,7 +398,7 @@ export function CadastrarCepPage() {
 
   const handleRemover = async (cepRemover: Cep) => {
     try {
-      const res = await fetch(`/api/v1/ceps/${cepRemover.id}`, {
+      const res = await apiFetch(`/api/v1/ceps/${cepRemover.id}`, {
         method: "DELETE",
       });
       if (res.ok) {

@@ -206,12 +206,12 @@ export function ImoveisPage() {
     setExpandido(null);
 
     try {
-      const resRegiao = await fetch(`/api/v1/dados-regiao/${cep}`);
+      const resRegiao = await apiFetch(`/api/v1/dados-regiao/${cep}`);
       if (!resRegiao.ok) throw new Error("Erro ao buscar dados da regiao");
       const dados: DadosRegiao = await resRegiao.json();
       setDadosRegiao(dados);
 
-      const resComp = await fetch(
+      const resComp = await apiFetch(
         `/api/v1/comparaveis?lat=${dados.coordenadas.lat}&lon=${dados.coordenadas.lon}&raio=500`
       );
       if (!resComp.ok) throw new Error("Erro ao buscar comparaveis");
